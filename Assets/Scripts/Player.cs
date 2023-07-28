@@ -7,10 +7,41 @@ public class Player : MonoBehaviour
     [SerializeField] private GameInput gameInput;
 
     [SerializeField] private float moveSpeed;
+    [SerializeField] private LayerMask countersLayerMask; 
 
     private bool isWalking;
-    
+
+    private Vector3 lastInteractDir;
+
     private void Update()
+    {
+        HandleMovement();
+        HandleInteractions();
+    }
+
+    private void HandleInteractions() 
+    {
+        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
+
+        Vector3 moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+
+        if (moveDir != Vector3.zero)
+        {
+            lastInteractDir = moveDir;
+        }
+
+        float interactDistance = 2f;
+        if (Physics.Raycast(transform.position, lastInteractDir, out RaycastHit raycastHit, interactDistance, countersLayerMask))
+        {
+            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter))
+            {
+                // Has ClearCounter
+                clearCounter.Interact();
+            }
+        }
+    }
+
+    private void HandleMovement()
     {
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
 
@@ -20,7 +51,7 @@ public class Player : MonoBehaviour
         float playerRadius = 0.7f;
         float playerHeight = 2f;
         bool canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDir, moveDistance);
-        
+
         if (!canMove)
         {
             // Cannot move towards moveDir
@@ -41,7 +72,7 @@ public class Player : MonoBehaviour
                 // Attempt Z movement
                 Vector3 moveDirZ = new Vector3(0, 0, moveDir.z).normalized;
                 canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirZ, moveDistance);
-            
+
                 if (canMove)
                 {
                     // Can move only on Z
@@ -63,7 +94,6 @@ public class Player : MonoBehaviour
 
         float rotateSpeed = 15f;
         transform.forward = Vector3.Slerp(transform.forward, moveDir, rotateSpeed * Time.deltaTime);
-
     }
 
     public bool IsWalking()
